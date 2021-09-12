@@ -2,7 +2,7 @@
 //! Pieces is a command line argument parser with user control in mind.
 
 /// FancyArgs is just a better way of using [env::args](std::env::args).
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FancyArgs {
 	/// The actual args in a vec string format.
 	pub inner: Vec<String>,
@@ -58,10 +58,11 @@ pub mod parse {
 	}
 
 	/// The parser for parsing commands, flags, and arguments.
-	#[derive(Debug)]
+	#[derive(Debug, PartialEq)]
 
 	pub struct Parser {
-		pub(crate) raw_args: FancyArgs,
+		/// ...
+		pub raw_args: FancyArgs,
 
 		/// Args from the main app
 		pub args: Vec<args::Arg>,
