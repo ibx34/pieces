@@ -30,29 +30,172 @@ impl FancyArgs {
 	}
 }
 
-/// The parser for parsing commands, flags, and arguments.
-#[derive(Debug)]
+/// ...
+pub mod parse {
 
-pub struct Parser {
-	pub(crate) raw_args: FancyArgs,
+	use bitflags::bitflags;
 
-	/// Args from the main app
-	pub args: Vec<args::Arg>,
+	use crate::args;
+	use crate::commands;
+	use crate::commands::Command;
+	use crate::FancyArgs;
+
+	bitflags! {
+		/// ...
+		pub struct ParserSettings: u32 {
+			/// ...
+			const CHECK_ARG_UNIQUENESS = 1;
+			/// ...
+			const CHECK_ARG_NAMES = 1 << 2;
+			/// ...
+			const CHECK_COMMAND_UNIQUENESS = 1 << 3;
+			/// ...
+			const CHECK_COMMAND_NAMES = 1 << 4;
+			/// ...
+			const CHECK_COMMAND_ARG_UNIQUENESS = 1 << 5;
+			/// ...
+			const CHECK_COMMAND_ARG_NAMES = 1 << 6;
+		}
+	}
+
+	/// The parser for parsing commands, flags, and arguments.
+	#[derive(Debug)]
+
+	pub struct Parser {
+		pub(crate) raw_args: FancyArgs,
+
+		/// Args from the main app
+		pub args: Vec<args::Arg>,
+
+		/// Commands
+		pub commands: Vec<commands::Command>,
+
+		/// Settings, set with ParserSettings:
+		pub settings: ParserSettings,
+	}
+
+	impl Parser {
+		// TODO after the app is created, add an argument here and to the struct
+		// for getting commands and such.
+
+		/// Builds the parser so parsing can begin.
+		pub fn build(
+			raw_args: FancyArgs,
+			args: Option<Vec<args::Arg>>,
+			commands: Option<Vec<commands::Command>>,
+		) -> Parser {
+			Parser {
+				raw_args,
+				args: match args {
+					Some(a) => a,
+					None => vec![],
+				},
+				commands: match commands {
+					Some(a) => a,
+					None => vec![],
+				},
+				settings: ParserSettings::empty(),
+			}
+		}
+
+		/// ...
+		pub fn setting(mut self, setting: ParserSettings) -> Self {
+			self.settings = self.settings | setting;
+			self
+		}
+
+		/// ...
+		pub fn check_command_uniqueness<'a>(
+			&'a self,
+		) -> (bool, Option<&'a Command>) {
+			let mut commands_iter = self.commands.iter();
+
+			while let Some(command) = commands_iter.next() {
+				let command_match = self
+					.commands
+					.iter()
+					.filter(|c| c == &command)
+					.collect::<Vec<&Command>>();
+
+				if command_match.len() > 1 {
+					return (true, Some(command));
+				}
+			}
+
+			(false, None)
+		}
+
+		/// ...
+		pub fn check_command_names<'a>(
+			&'a self,
+		) -> (bool, Option<&'a Command>, Option<&'a Command>) {
+			commands::check_cmds(&self.commands)
+		}
+	}
 }
 
-impl Parser {
-	// TODO after the app is created, add an argument here and to the struct
-	// for getting commands and such.
+/// Everything command related
+pub mod commands {
+	use crate::args::Arg;
 
-	/// Builds the parser so parsing can begin.
-	pub fn build(raw_args: FancyArgs, args: Option<Vec<args::Arg>>) -> Parser {
-		Parser {
-			raw_args,
-			args: match args {
-				Some(a) => a,
-				None => vec![],
-			},
+	/// ...
+	#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+	pub struct Command {
+		/// Name of the argument
+		pub name: String,
+		/// Help for the command
+		pub help: Option<String>,
+		/// Command Arguments
+		pub args: Vec<Arg>,
+	}
+
+	impl Command {
+		/// Creates a new command with the provided name.
+		pub fn new(name: String) -> Command {
+			Command {
+				name,
+				help: None,
+				args: vec![],
+			}
 		}
+
+		/// Sets the command's help. Appears when running help on the
+		/// command / running help for the main command.
+		pub fn help(mut self, help: String) -> Self {
+			self.help = Some(help);
+
+			self
+		}
+
+		/// ...
+		pub fn arg(mut self, arg: Arg) -> Self {
+			self.args.push(arg);
+			self
+		}
+
+		/// ...
+		pub fn args(mut self, args: Vec<Arg>) -> Self {
+			self.args = args;
+			self
+		}
+	}
+
+	/// ...
+	pub fn check_cmds<'a>(
+		commands: &'a Vec<Command>,
+	) -> (bool, Option<&'a Command>, Option<&'a Command>) {
+		let mut commands = commands.iter();
+
+		while let Some(command) = commands.next() {
+			match commands.find(|cmd| cmd.name == command.name) {
+				Some(cmd) => {
+					return (true, Some(&command), Some(cmd));
+				}
+				None => continue,
+			}
+		}
+
+		return (false, None, None);
 	}
 }
 
@@ -77,7 +220,7 @@ pub mod args {
 	/// app without a long/short name it will be considered a positional
 	/// argument. If you do set a long/short name people can use
 	/// `--<arg>`/`-<arg>`.
-	#[derive(Debug, Clone)]
+	#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 	pub struct Arg {
 		/// Name of the argument
 		pub name: String,
