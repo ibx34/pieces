@@ -3,7 +3,7 @@ hard_tabs = false
 imports_indent = "Visual"
 imports_layout = "HorizontalVertical"
 # indent_style = "Visual"
-max_width = 80
+max_width = 100
 group_imports = "StdExternalCrate"
 
 report_todo = "Always"
