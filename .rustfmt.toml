@@ -8,6 +8,6 @@ group_imports = "StdExternalCrate"
 
 report_todo = "Always"
 report_fixme = "Always"
-tab_spaces = 8
+tab_spaces = 4
 normalize_comments = true
 unstable_features = true
