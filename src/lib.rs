@@ -78,7 +78,7 @@ pub mod parse {
 		// TODO after the app is created, add an argument here and to the struct
 		// for getting commands and such.
 
-		/// Builds the parser so parsing can begin.
+		/// Builds the parser so parsing can begin
 		pub fn build(
 			raw_args: FancyArgs,
 			args: Option<Vec<args::Arg>>,
