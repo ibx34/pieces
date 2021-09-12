@@ -41,10 +41,7 @@ impl Parser
 {
         // TODO after the app is created, add an argument here and to the struct
         // for getting commands and such.
-        pub fn build(
-                raw_args: FancyArgs,
-                args: Option<Vec<args::Arg>>,
-        ) -> Parser
+        pub fn build(raw_args: FancyArgs, args: Option<Vec<args::Arg>>) -> Parser
         {
                 Parser {
                         raw_args,
@@ -107,9 +104,7 @@ pub mod args
                 }
         }
 
-        pub fn check_args<'a>(
-                args: &'a Vec<Arg>,
-        ) -> (bool, Option<&'a Arg>, Option<&'a Arg>)
+        pub fn check_args<'a>(args: &'a Vec<Arg>) -> (bool, Option<&'a Arg>, Option<&'a Arg>)
         {
                 let mut args = args.iter();
 
@@ -119,19 +114,13 @@ pub mod args
                                         || a.short.is_some()
                                                 && arg.short.is_some()
                                                 && a.short.as_ref().unwrap()
-                                                        == arg.short
-                                                                .as_ref()
-                                                                .unwrap()
+                                                        == arg.short.as_ref().unwrap()
                                         || a.long.is_some()
                                                 && arg.long.is_some()
                                                 && a.long.as_ref().unwrap()
-                                                        == arg.long
-                                                                .as_ref()
-                                                                .unwrap()
+                                                        == arg.long.as_ref().unwrap()
                         }) {
-                                Some(ark) => {
-                                        return (true, Some(&arg), Some(ark))
-                                }
+                                Some(ark) => return (true, Some(&arg), Some(ark)),
                                 None => continue,
                         }
                 }
