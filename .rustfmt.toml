@@ -1,9 +1,11 @@
-brace_style = "AlwaysNextLine"
-hard_tabs = false
+brace_style = "PreferSameLine"
+hard_tabs = true
 imports_indent = "Visual"
 imports_layout = "HorizontalVertical"
-# indent_style = "Visual"
-max_width = 100
+indent_style = "block"
+max_width = 80 #100
+chain_width = 80
+single_line_if_else_max_width = 80
 group_imports = "StdExternalCrate"
 
 report_todo = "Always"
@@ -11,3 +13,5 @@ report_fixme = "Always"
 tab_spaces = 4
 normalize_comments = true
 unstable_features = true
+format_code_in_doc_comments = true
+format_strings = true
