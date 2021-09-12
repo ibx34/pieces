@@ -16,11 +16,15 @@ impl FancyArgs {
 
 		args.next();
 
-		FancyArgs { inner: args.into_iter().collect::<Vec<String>>() }
+		FancyArgs {
+			inner: args.into_iter().collect::<Vec<String>>(),
+		}
 	}
 
 	pub fn load(args: std::env::Args) -> FancyArgs {
-		FancyArgs { inner: args.into_iter().collect::<Vec<String>>() }
+		FancyArgs {
+			inner: args.into_iter().collect::<Vec<String>>(),
+		}
 	}
 }
 
@@ -35,11 +39,13 @@ impl Parser {
 	// TODO after the app is created, add an argument here and to the struct
 	// for getting commands and such.
 	pub fn build(raw_args: FancyArgs, args: Option<Vec<args::Arg>>) -> Parser {
-		Parser { raw_args,
-		         args: match args {
-			         Some(a) => a,
-		           None => vec![],
-		         } }
+		Parser {
+			raw_args,
+			args: match args {
+				Some(a) => a,
+				None => vec![],
+			},
+		}
 	}
 }
 
@@ -57,11 +63,13 @@ pub mod args {
 
 	impl Arg {
 		pub fn new(name: String) -> Arg {
-			Arg { name,
-			      long: None,
-			      short: None,
-			      help: None,
-			      required: false }
+			Arg {
+				name,
+				long: None,
+				short: None,
+				help: None,
+				required: false,
+			}
 		}
 
 		pub fn long(mut self, long: String) -> Self {
@@ -89,15 +97,17 @@ pub mod args {
 		}
 	}
 
-	pub fn check_args<'a>(args: &'a Vec<Arg>) -> (bool, Option<&'a Arg>, Option<&'a Arg>) {
+	pub fn check_args<'a>(
+		args: &'a Vec<Arg>,
+	) -> (bool, Option<&'a Arg>, Option<&'a Arg>) {
 		let mut args = args.iter();
 
 		while let Some(arg) = args.next() {
 			match args.find(|a| {
-				          a.name == arg.name
-				          || a.short == arg.short && a.short.is_some()
-				          || a.long == arg.long && a.long.is_some()
-			          }) {
+				a.name == arg.name
+					|| a.short == arg.short && a.short.is_some()
+					|| a.long == arg.long && a.long.is_some()
+			}) {
 				Some(ark) => return (true, Some(&arg), Some(ark)),
 				None => continue,
 			}
