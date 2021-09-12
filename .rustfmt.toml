@@ -1,0 +1,13 @@
+brace_style = "AlwaysNextLine"
+hard_tabs = false
+imports_indent = "Visual"
+imports_layout = "HorizontalVertical"
+# indent_style = "Visual"
+max_width = 80
+group_imports = "StdExternalCrate"
+
+report_todo = "Always"
+report_fixme = "Always"
+tab_spaces = 8
+normalize_comments = true
+unstable_features = true
