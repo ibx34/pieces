@@ -58,15 +58,18 @@ impl Parser {
 
 /// Everything argument related
 pub mod args {
+
 	use bitflags::bitflags;
+
+	use crate::FancyArgs;
 
 	bitflags! {
 		/// Argument Settings
 		pub struct ArgSettings: u32 {
 			/// Whether or not more than one argument should be allowed
 			const MULTIPLE = 1;
-			// const BB = 1 << 2;
-			// const CC = 1 << 3;
+			/// Whether or not the argument should be required
+			const REQUIRED = 1 << 2;
 		}
 	}
 
@@ -84,9 +87,6 @@ pub mod args {
 		pub short: Option<String>,
 		/// Help for the argument. Appears when users run help.
 		pub help: Option<String>,
-		/// Whether or not the argument is required. If it is required it will
-		/// be checked when parsing is underway.
-		pub required: bool,
 		/// Argument Settings
 		pub settings: ArgSettings,
 	}
@@ -99,7 +99,6 @@ pub mod args {
 				long: None,
 				short: None,
 				help: None,
-				required: false,
 				settings: ArgSettings::empty(),
 			}
 		}
@@ -126,15 +125,8 @@ pub mod args {
 			self
 		}
 
-		/// Sets if the argument is required.
-		pub fn required(mut self, required: bool) -> Self {
-			self.required = required;
-
-			self
-		}
-
 		/// Set a setting
-		pub fn set_setting(mut self, setting: ArgSettings) -> Self {
+		pub fn setting(mut self, setting: ArgSettings) -> Self {
 			self.settings = self.settings | setting;
 			self
 		}
@@ -167,5 +159,41 @@ pub mod args {
 		}
 
 		return (false, None, None);
+	}
+
+	/// ...
+	pub fn check_req_args<'a>(
+		args: &'a Vec<Arg>,
+		raw_args: &FancyArgs,
+	) -> (bool, Option<&'a Arg>) {
+		let raw_args = raw_args
+			.inner
+			.iter()
+			.map(|ra| {
+				ra.split("--")
+					.collect::<String>()
+					.split('-')
+					.collect::<String>()
+			})
+			.collect::<Vec<String>>();
+		let args = args
+			.iter()
+			.filter(|e| e.settings.contains(ArgSettings::REQUIRED))
+			.collect::<Vec<&Arg>>();
+
+		for arg in args {
+			if raw_args.contains(&arg.name)
+				|| arg.short.is_some()
+					&& raw_args.contains(&arg.short.as_ref().unwrap())
+				|| arg.long.is_some()
+					&& raw_args.contains(&arg.long.as_ref().unwrap())
+			{
+				continue;
+			}
+
+			return (true, Some(arg));
+		}
+
+		(false, None)
 	}
 }
