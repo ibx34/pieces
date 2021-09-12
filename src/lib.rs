@@ -37,7 +37,6 @@ pub mod parse {
 
 	use crate::args;
 	use crate::commands;
-	use crate::commands::Command;
 	use crate::FancyArgs;
 
 	bitflags! {
@@ -105,20 +104,18 @@ pub mod parse {
 		}
 
 		/// ...
-		pub fn check_command_uniqueness<'a>(
+		pub fn check_uniqueness<'a, T: PartialEq>(
 			&'a self,
-		) -> (bool, Option<&'a Command>) {
-			let mut commands_iter = self.commands.iter();
+			items: &'a Vec<T>,
+		) -> (bool, Option<&'a T>) {
+			let mut iter = items.iter();
 
-			while let Some(command) = commands_iter.next() {
-				let command_match = self
-					.commands
-					.iter()
-					.filter(|c| c == &command)
-					.collect::<Vec<&Command>>();
+			while let Some(item) = iter.next() {
+				let katch =
+					items.iter().filter(|i| i == &item).collect::<Vec<&T>>();
 
-				if command_match.len() > 1 {
-					return (true, Some(command));
+				if katch.len() > 1 {
+					return (true, Some(item));
 				}
 			}
 
@@ -128,8 +125,19 @@ pub mod parse {
 		/// ...
 		pub fn check_command_names<'a>(
 			&'a self,
-		) -> (bool, Option<&'a Command>, Option<&'a Command>) {
+		) -> (
+			bool,
+			Option<&'a commands::Command>,
+			Option<&'a commands::Command>,
+		) {
 			commands::check_cmds(&self.commands)
+		}
+
+		/// ...
+		pub fn check_arg_names<'a>(
+			&'a self,
+		) -> (bool, Option<&'a args::Arg>, Option<&'a args::Arg>) {
+			args::check_args(&self.args)
 		}
 	}
 }
@@ -139,7 +147,7 @@ pub mod commands {
 	use crate::args::Arg;
 
 	/// ...
-	#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+	#[derive(Debug, Clone, PartialEq, Eq)]
 	pub struct Command {
 		/// Name of the argument
 		pub name: String,
