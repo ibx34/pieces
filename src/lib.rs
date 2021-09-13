@@ -156,63 +156,21 @@ pub mod parse {
 			let mut results = ParserResult::new();
 			let mut iter = self.raw_args.inner.iter();
 
-			while let Some(raw_arg) = iter.next() {
-				if let Some(command) =
-					self.commands.iter().find(|c| &c.name == raw_arg)
-				{
-					match results
-						.present_commands
-						.insert(raw_arg.to_string(), command)
-					{
-						Some(_) => continue,
-						None => continue,
+			while let Some(raw_arg) = &iter.next() {
+				if let Some(a) = FLAG_REGEX.captures(&raw_arg) {
+					let arg = String::from(&a[1]);
+
+					if let Some(arg) = self.args.iter().find(|a| {
+						a.name == arg ||
+						a.short == Some(arg.to_string()) && a.short.is_some() ||
+						a.long == Some(arg.to_string()) && a.long.is_some()
+					}) {
+						results.present_args.insert(arg.name.to_string(), arg);
 					}
 				} else {
-					let arg = raw_arg
-						.split('-')
-						.collect::<String>()
-						.split("--")
-						.collect::<String>();
-
-					if let Some(c_arg) = self.args.iter().find(|a| {
-						&a.name == &arg
-							|| a.short.is_some()
-								&& a.short.as_ref().unwrap() == &arg
-							|| a.long.is_some()
-								&& a.long.as_ref().unwrap() == &arg
-					}) {
-						let mut arg_value: Vec<&String> = vec![];
-						if c_arg.settings.contains(args::ArgSettings::TAKES_VALUE) {
-							while let Some(next_arg) = iter.next() {
-								println!("{}", next_arg);
-								let arg = raw_arg
-								.split('-')
-								.collect::<String>()
-								.split("--")
-								.collect::<String>();
-
-								if let Some(stopped) = self.args.iter().find(|a| {
-									&a.name == &arg
-										|| a.short.is_some()
-											&& a.short.as_ref().unwrap() == &arg
-										|| a.long.is_some()
-											&& a.long.as_ref().unwrap() == &arg
-								}) {
-									println!("{:?}", stopped);
-									break;
-								} else {
-									arg_value.push(next_arg);
-								}
-							}
-
-						}
-
-						println!("--> {:?}", arg_value);
-						match results.present_args.insert(arg, c_arg) {
-							Some(_) => continue,
-							None => continue,
-						}
-					}
+					if let Some(cmd) = self.commands.iter().find(|c| &&c.name == raw_arg ) {
+						results.present_commands.insert(cmd.name.to_string(), cmd);
+					}					
 				}
 			}
 
