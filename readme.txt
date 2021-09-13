@@ -1,1 +1,0 @@
-Please format your code with "cargo +nightly fmt"

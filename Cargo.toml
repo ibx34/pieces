@@ -8,7 +8,7 @@ description = "A command line argument parser."
 readme = "readme.md"
 repository = "https://github.com/ibx34/pieces"
 homepage = "https://github.com/ibx34/pieces"
-documentation = "https://docs.rs/pieces/0.1.0/coloroid/"
+documentation = "https://docs.rs/pieces/0.1.1/pieces/"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
