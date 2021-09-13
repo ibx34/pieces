@@ -1,6 +1,9 @@
 #![deny(missing_docs)]
 //! Pieces is a command line argument parser with user control in mind.
 
+#[macro_use]
+extern crate lazy_static;
+
 /// FancyArgs is just a better way of using [env::args](std::env::args).
 #[derive(Debug, PartialEq)]
 pub struct FancyArgs {
@@ -36,6 +39,13 @@ pub mod parse {
 	use std::collections::HashMap;
 
 	use bitflags::bitflags;
+	use regex::Regex;
+
+	lazy_static! {
+		static ref FLAG_REGEX: Regex = {
+			Regex::new(r"^--?(.+)").unwrap()
+		};
+	}
 
 	use crate::args;
 	use crate::commands;
@@ -171,7 +181,33 @@ pub mod parse {
 							|| a.long.is_some()
 								&& a.long.as_ref().unwrap() == &arg
 					}) {
-						println!("{:#?}", c_arg);
+						let mut arg_value: Vec<&String> = vec![];
+						if c_arg.settings.contains(args::ArgSettings::TAKES_VALUE) {
+							while let Some(next_arg) = iter.next() {
+								println!("{}", next_arg);
+								let arg = raw_arg
+								.split('-')
+								.collect::<String>()
+								.split("--")
+								.collect::<String>();
+
+								if let Some(stopped) = self.args.iter().find(|a| {
+									&a.name == &arg
+										|| a.short.is_some()
+											&& a.short.as_ref().unwrap() == &arg
+										|| a.long.is_some()
+											&& a.long.as_ref().unwrap() == &arg
+								}) {
+									println!("{:?}", stopped);
+									break;
+								} else {
+									arg_value.push(next_arg);
+								}
+							}
+
+						}
+
+						println!("--> {:?}", arg_value);
 						match results.present_args.insert(arg, c_arg) {
 							Some(_) => continue,
 							None => continue,
@@ -307,6 +343,8 @@ pub mod args {
 			const MULTIPLE = 1;
 			/// Whether or not the argument should be required
 			const REQUIRED = 1 << 2;
+			/// Whether or not the argument takes a value
+			const TAKES_VALUE = 1 << 3;
 		}
 	}
 
