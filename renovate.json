@@ -1,5 +1,12 @@
 {
+<<<<<<< HEAD
     "extends": [
       "config:base"
     ]
 }
+=======
+  "extends": [
+    "config:base"
+  ]
+}
+>>>>>>> 39a04387a6f486f6a51aaf83b8abcf0c0c170bbb
