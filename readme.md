@@ -1,5 +1,5 @@
 # Pieces
-A command line argumnt parser.
+A command line argumnt parser. (owo?)
 
 ## Quick Start (Not much now)
 ```rust
