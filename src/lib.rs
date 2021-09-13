@@ -33,6 +33,8 @@ impl FancyArgs {
 /// ...
 pub mod parse {
 
+	use std::collections::HashMap;
+
 	use bitflags::bitflags;
 
 	use crate::args;
@@ -54,6 +56,50 @@ pub mod parse {
 			const CHECK_COMMAND_ARG_UNIQUENESS = 1 << 5;
 			/// ...
 			const CHECK_COMMAND_ARG_NAMES = 1 << 6;
+		}
+	}
+
+	/// ...
+	#[derive(Debug, PartialEq)]
+	pub struct ParserResult<'a> {
+		/// ...
+		pub present_commands: HashMap<String, &'a commands::Command>,
+		/// ...
+		pub present_args: HashMap<String, args::Arg>,
+	}
+
+	impl<'a> ParserResult<'a> {
+		/// ...
+		pub fn new() -> ParserResult<'a> {
+			ParserResult {
+				present_commands: HashMap::new(),
+				present_args: HashMap::new(),
+			}
+		}
+
+		/// ...
+		pub fn value_of<'b>(
+			&'b self,
+			key: String,
+		) -> Result<&'b commands::Command, std::io::Error> {
+			match self.present_commands.get(&key) {
+				Some(command) => Ok(command),
+				None => Err(std::io::Error::new(
+					std::io::ErrorKind::NotFound,
+					"Command not present.",
+				)),
+			}
+		}
+
+		/// ...
+		pub fn is_present(
+			self,
+			key: String,
+		) -> bool{
+			match self.present_commands.get(&key) {
+				Some(_) => true,
+				None => false,
+			}
 		}
 	}
 
@@ -96,6 +142,28 @@ pub mod parse {
 				},
 				settings: ParserSettings::empty(),
 			}
+		}
+
+		/// ...
+		pub fn parse<'a>(&'a self) -> ParserResult<'a> {
+			let mut results = ParserResult::new();
+			let mut iter = self.raw_args.inner.iter();
+
+			while let Some(raw_arg) = iter.next() {
+				if let Some(command) =
+					self.commands.iter().find(|c| &c.name == raw_arg)
+				{
+					match results
+						.present_commands
+						.insert(raw_arg.to_string(), command)
+					{
+						Some(_) => continue,
+						None => continue,
+					}
+				}
+			}
+
+			results
 		}
 
 		/// ...
