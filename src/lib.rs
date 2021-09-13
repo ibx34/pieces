@@ -65,7 +65,7 @@ pub mod parse {
 		/// ...
 		pub present_commands: HashMap<String, &'a commands::Command>,
 		/// ...
-		pub present_args: HashMap<String, args::Arg>,
+		pub present_args: HashMap<String, &'a args::Arg>,
 	}
 
 	impl<'a> ParserResult<'a> {
@@ -92,10 +92,7 @@ pub mod parse {
 		}
 
 		/// ...
-		pub fn is_present(
-			self,
-			key: String,
-		) -> bool{
+		pub fn is_present(self, key: String) -> bool {
 			match self.present_commands.get(&key) {
 				Some(_) => true,
 				None => false,
@@ -159,6 +156,26 @@ pub mod parse {
 					{
 						Some(_) => continue,
 						None => continue,
+					}
+				} else {
+					let arg = raw_arg
+						.split('-')
+						.collect::<String>()
+						.split("--")
+						.collect::<String>();
+
+					if let Some(c_arg) = self.args.iter().find(|a| {
+						&a.name == &arg
+							|| a.short.is_some()
+								&& a.short.as_ref().unwrap() == &arg
+							|| a.long.is_some()
+								&& a.long.as_ref().unwrap() == &arg
+					}) {
+						println!("{:#?}", c_arg);
+						match results.present_args.insert(arg, c_arg) {
+							Some(_) => continue,
+							None => continue,
+						}
 					}
 				}
 			}
