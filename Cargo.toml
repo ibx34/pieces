@@ -1,11 +1,11 @@
 [package]
 name = "pieces"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2018"
 license-file = "COPYING"
 maintenance = { status = "actively-developed" }
 description = "A command line argument parser."
-readme = "readme.txt"
+readme = "readme.md"
 repository = "https://github.com/ibx34/pieces"
 homepage = "https://github.com/ibx34/pieces"
 documentation = "https://docs.rs/pieces/0.1.0/coloroid/"
