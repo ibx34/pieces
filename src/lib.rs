@@ -78,7 +78,7 @@ pub mod parse {
 		}
 
 		/// ...
-		pub fn has_command<'b>(
+		pub fn value_of<'b>(
 			&'b self,
 			key: String,
 		) -> Result<&'b commands::Command, std::io::Error> {
@@ -88,6 +88,17 @@ pub mod parse {
 					std::io::ErrorKind::NotFound,
 					"Command not present.",
 				)),
+			}
+		}
+
+		/// ...
+		pub fn is_present(
+			self,
+			key: String,
+		) -> bool{
+			match self.present_commands.get(&key) {
+				Some(_) => true,
+				None => false,
 			}
 		}
 	}
