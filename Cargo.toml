@@ -2,7 +2,13 @@
 name = "pieces"
 version = "0.1.0"
 edition = "2018"
-
+license-file = "COPYING"
+maintenance = { status = "actively-developed" }
+description = "A command line argument parser."
+readme = "readme.txt"
+repository = "https://github.com/ibx34/pieces"
+homepage = "https://github.com/ibx34/pieces"
+documentation = "https://docs.rs/pieces/0.1.0/coloroid/"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
