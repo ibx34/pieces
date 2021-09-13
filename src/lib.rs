@@ -156,19 +156,21 @@ pub mod parse {
 			let mut results = ParserResult::new();
 			let mut iter = self.raw_args.inner.iter();
 
-			while let Some(raw_arg) = &iter.next() {
-				if let Some(a) = FLAG_REGEX.captures(&raw_arg) {
-					let arg = String::from(&a[1]);
-
-					if let Some(arg) = self.args.iter().find(|a| {
-						a.name == arg ||
-						a.short == Some(arg.to_string()) && a.short.is_some() ||
-						a.long == Some(arg.to_string()) && a.long.is_some()
-					}) {
-						results.present_args.insert(arg.name.to_string(), arg);
-					}
+			while let Some(raw_arg) = iter.next() {
+				println!("{:?}", self.check_flag(raw_arg));
+				let arg = self.check_flag(raw_arg);
+				if arg.0 {
+						let arg = String::from(arg.1.unwrap());
+	
+						if let Some(arg) = self.args.iter().find(|a| {
+							a.name == arg ||
+							a.short == Some(arg.to_string()) && a.short.is_some() ||
+							a.long == Some(arg.to_string()) && a.long.is_some()
+						}) {
+							results.present_args.insert(arg.name.to_string(), arg);
+						}
 				} else {
-					if let Some(cmd) = self.commands.iter().find(|c| &&c.name == raw_arg ) {
+					if let Some(cmd) = self.commands.iter().find(|c| &&c.name == &raw_arg ) {
 						results.present_commands.insert(cmd.name.to_string(), cmd);
 					}					
 				}
@@ -218,6 +220,25 @@ pub mod parse {
 			&'a self,
 		) -> (bool, Option<&'a args::Arg>, Option<&'a args::Arg>) {
 			args::check_args(&self.args)
+		}
+
+		/// ...
+		pub fn check_flag<'a>(&self, string: &'a String) -> (bool,Option<&'a str>) {
+			match (
+				string.starts_with('-'),
+				string.starts_with("--")
+			) {
+				(true, true) => {
+					(true,string.strip_prefix("--"))
+				},
+				(true, false) => {
+					(true,string.strip_prefix('-'))
+				},
+				(false, true) => {
+					(true,string.strip_prefix("--"))
+				},
+				(false, false) => (false,None),
+			}
 		}
 	}
 }
