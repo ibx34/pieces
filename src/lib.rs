@@ -37,6 +37,7 @@ impl FancyArgs {
 pub mod parse {
 
 	use std::collections::HashMap;
+use std::ops::Range;
 
 	use bitflags::bitflags;
 	use regex::Regex;
@@ -71,9 +72,19 @@ pub mod parse {
 
 	/// ...
 	#[derive(Debug, PartialEq)]
+	pub struct ParserCmdResult<'a> {
+		/// ...
+		pub command: Option<&'a commands::Command>,
+		/// ...
+		pub command_and_args: Option<Range<usize>>,
+	}
+
+
+	/// ...
+	#[derive(Debug, PartialEq)]
 	pub struct ParserResult<'a> {
 		/// ...
-		pub present_commands: HashMap<String, &'a commands::Command>,
+		pub commands: HashMap<String, ParserCmdResult<'a>>,
 		/// ...
 		pub present_args: HashMap<String, &'a args::Arg>,
 	}
@@ -82,28 +93,28 @@ pub mod parse {
 		/// ...
 		pub fn new() -> ParserResult<'a> {
 			ParserResult {
-				present_commands: HashMap::new(),
+				commands: HashMap::new(),
 				present_args: HashMap::new(),
 			}
 		}
 
 		/// ...
-		pub fn value_of<'b>(
-			&'b self,
-			key: String,
-		) -> Result<&'b commands::Command, std::io::Error> {
-			match self.present_commands.get(&key) {
-				Some(command) => Ok(command),
-				None => Err(std::io::Error::new(
-					std::io::ErrorKind::NotFound,
-					"Command not present.",
-				)),
-			}
-		}
+		// pub fn value_of<'b>(
+		// 	&'b self,
+		// 	key: String,
+		// ) -> Result<&'b commands::Command, std::io::Error> {
+		// 	match self.present_commands.get(&key) {
+		// 		Some(command) => Ok(command),
+		// 		None => Err(std::io::Error::new(
+		// 			std::io::ErrorKind::NotFound,
+		// 			"Command not present.",
+		// 		)),
+		// 	}
+		// }
 
 		/// ...
 		pub fn is_present(self, key: String) -> bool {
-			match self.present_commands.get(&key) {
+			match self.commands.get(&key) {
 				Some(_) => true,
 				None => false,
 			}
@@ -156,25 +167,116 @@ pub mod parse {
 			let mut results = ParserResult::new();
 			let mut iter = self.raw_args.inner.iter();
 
-			while let Some(raw_arg) = iter.next() {
-				println!("{:?}", self.check_flag(raw_arg));
-				let arg = self.check_flag(raw_arg);
-				if arg.0 {
-						let arg = String::from(arg.1.unwrap());
-	
-						if let Some(arg) = self.args.iter().find(|a| {
-							a.name == arg ||
-							a.short == Some(arg.to_string()) && a.short.is_some() ||
-							a.long == Some(arg.to_string()) && a.long.is_some()
-						}) {
-							results.present_args.insert(arg.name.to_string(), arg);
-						}
+			let mut commansds = iter.filter_map(|i| {
+				if let Some(cmd) = self.commands.iter().find(|c| &&c.name == &i ) {
+					Some((
+						self.raw_args.inner.iter().position(|e| e == i),
+						Some(cmd)
+					))
 				} else {
-					if let Some(cmd) = self.commands.iter().find(|c| &&c.name == &raw_arg ) {
-						results.present_commands.insert(cmd.name.to_string(), cmd);
-					}					
+					Some((
+						None,
+						None
+					))
 				}
+			});
+
+			println!("--> {:#?}", commansds);
+			// EwE is set as first command
+			while let Some(main_cmd) = commansds.next() {
+				//println!("{:?}", main_cmd);
+				if main_cmd.1.is_none() {
+					//commansds.next();
+					continue;
+				}
+
+				let main_cmd = (main_cmd.0,main_cmd.1.unwrap());
+			
+				let currnet_command = ParserCmdResult {
+					command: Some(main_cmd.1),
+					command_and_args: Some(main_cmd.0.unwrap()..main_cmd.0.unwrap()+1),
+				};
+
+				// //println!("\t\t{:#?}", main_cmd);
+				// let mut currnet_command = ParserCmdResult {
+				// 	command: main_cmd.1,
+				// 	command_and_args: None,
+				// };
+				
+				// UwU is set as second command
+				//while let Some(cmd) = commansds.next() {
+				//commansds.next();
+				// while let Some(cmd) = commansds.next() {
+				// 	if cmd.1.is_some() {
+				// 		let currnet_command = ParserCmdResult {
+				// 			command: main_cmd.1,
+				// 			command_and_args: Some(main_cmd.0.unwrap()..cmd.0.unwrap()),
+				// 		};
+						
+				// 		//currnet_command.command_and_args = Some(main_cmd.0.unwrap()..cmd.0.unwrap());
+						
+				// 		results.commands.insert(main_cmd.1.unwrap().name.to_string(), currnet_command);
+				// 		break;
+				// 	}
+										
+				// }
+
+				//commansds.next();
+				//continue;
+				println!("{:#?}", currnet_command);
+				results.commands.insert(main_cmd.1.name.to_string(), currnet_command);
+				// if let Some(owo) = self.raw_args.inner.get(currnet_command.command_and_args.unwrap()) {
+				// 	println!("{:?}", owo);
+				// }
 			}
+			// for (i, cmd) in commansds.enumerate() {
+			// 	if cmd.is_none() {
+			// 		continue;
+			// 	};
+
+			// 	let cmd = cmd.unwrap();
+			// 	let first_index = i;
+			// 	let mut command = ParserCmdResult {
+			// 			command: cmd,
+			// 			command_and_args: first_index..0,
+			// 		};
+				
+			// 	commansds.next();
+			// 	for (i, cmd) in commansds.enumerate() {
+			// 		if cmd.is_none() {
+			// 			continue;
+			// 		}
+
+			// 		command.command_and_args = first_index..i;
+			// 	}
+			// }
+
+			// while let Some(raw_arg) = iter.next() {
+			// 	println!("{:?}", self.check_flag(raw_arg));
+			// 	let arg = self.check_flag(raw_arg);
+			// 	if arg.0 {
+			// 			let arg = String::from(arg.1.unwrap());
+	
+			// 			if let Some(arg) = self.args.iter().find(|a| {
+			// 				a.name == arg ||
+			// 				a.short == Some(arg.to_string()) && a.short.is_some() ||
+			// 				a.long == Some(arg.to_string()) && a.long.is_some()
+			// 			}) {
+			// 				let vals: Vec<&String> = vec![];
+			// 				if arg.settings.contains(args::ArgSettings::MULTIPLE) {
+			// 					while let Some(val) = iter.next() {
+			// 						println!("{:?}", val);	
+			// 					}
+			// 				}
+
+			// 				results.present_args.insert(arg.name.to_string(), arg);
+			// 			}
+			// 	} else {
+			// 		if let Some(cmd) = self.commands.iter().find(|c| &&c.name == &raw_arg ) {
+			// 			results.present_commands.insert(cmd.name.to_string(), cmd);
+			// 		}					
+			// 	}
+			// }
 
 			results
 		}
