@@ -1,9 +1,6 @@
 #![deny(missing_docs)]
 //! Pieces is a command line argument parser with user control in mind.
 
-#[macro_use]
-extern crate lazy_static;
-
 /// FancyArgs is just a better way of using [env::args](std::env::args).
 #[derive(Debug, PartialEq)]
 pub struct FancyArgs {
@@ -37,17 +34,10 @@ impl FancyArgs {
 pub mod parse {
 
 	use std::collections::HashMap;
+	use std::hash::Hash;
 use std::ops::Range;
 
 	use bitflags::bitflags;
-	use regex::Regex;
-
-	lazy_static! {
-		static ref FLAG_REGEX: Regex = {
-			Regex::new(r"^--?(.+)").unwrap()
-		};
-	}
-
 	use crate::args;
 	use crate::commands;
 	use crate::FancyArgs;
@@ -132,7 +122,7 @@ use std::ops::Range;
 		pub args: Vec<args::Arg>,
 
 		/// Commands
-		pub commands: Vec<commands::Command>,
+		pub commands: HashMap<String, commands::Command>, //Vec<commands::Command>,
 
 		/// Settings, set with ParserSettings:
 		pub settings: ParserSettings,
@@ -155,20 +145,27 @@ use std::ops::Range;
 					None => vec![],
 				},
 				commands: match commands {
-					Some(a) => a,
-					None => vec![],
+					Some(a) => {
+						let mut cmds = HashMap::new();
+
+						for cmd in a {
+							cmds.insert(cmd.name.to_string(), cmd);
+						}
+
+						cmds
+					},
+					None => HashMap::new(),
 				},
 				settings: ParserSettings::empty(),
 			}
 		}
 
 		/// ...
-		pub fn parse<'a>(&'a self) -> ParserResult<'a> {
+		pub fn parse<'b>(&'b self) -> ParserResult<'b> {
 			let mut results = ParserResult::new();
-			let mut iter = self.raw_args.inner.iter();
 
-			let mut commansds = iter.filter_map(|i| {
-				if let Some(cmd) = self.commands.iter().find(|c| &&c.name == &i ) {
+			let mut commansds = self.raw_args.inner.iter().filter_map(|i| {
+				if let Some(cmd) = self.commands.get(i) {//self.commands.iter().find(|c| &c.0 == &i ) {
 					Some((
 						self.raw_args.inner.iter().position(|e| e == i),
 						Some(cmd)
@@ -181,12 +178,8 @@ use std::ops::Range;
 				}
 			});
 
-			println!("--> {:#?}", commansds);
-			// EwE is set as first command
 			while let Some(main_cmd) = commansds.next() {
-				//println!("{:?}", main_cmd);
 				if main_cmd.1.is_none() {
-					//commansds.next();
 					continue;
 				}
 
@@ -197,87 +190,8 @@ use std::ops::Range;
 					command_and_args: Some(main_cmd.0.unwrap()..main_cmd.0.unwrap()+1),
 				};
 
-				// //println!("\t\t{:#?}", main_cmd);
-				// let mut currnet_command = ParserCmdResult {
-				// 	command: main_cmd.1,
-				// 	command_and_args: None,
-				// };
-				
-				// UwU is set as second command
-				//while let Some(cmd) = commansds.next() {
-				//commansds.next();
-				// while let Some(cmd) = commansds.next() {
-				// 	if cmd.1.is_some() {
-				// 		let currnet_command = ParserCmdResult {
-				// 			command: main_cmd.1,
-				// 			command_and_args: Some(main_cmd.0.unwrap()..cmd.0.unwrap()),
-				// 		};
-						
-				// 		//currnet_command.command_and_args = Some(main_cmd.0.unwrap()..cmd.0.unwrap());
-						
-				// 		results.commands.insert(main_cmd.1.unwrap().name.to_string(), currnet_command);
-				// 		break;
-				// 	}
-										
-				// }
-
-				//commansds.next();
-				//continue;
-				println!("{:#?}", currnet_command);
 				results.commands.insert(main_cmd.1.name.to_string(), currnet_command);
-				// if let Some(owo) = self.raw_args.inner.get(currnet_command.command_and_args.unwrap()) {
-				// 	println!("{:?}", owo);
-				// }
 			}
-			// for (i, cmd) in commansds.enumerate() {
-			// 	if cmd.is_none() {
-			// 		continue;
-			// 	};
-
-			// 	let cmd = cmd.unwrap();
-			// 	let first_index = i;
-			// 	let mut command = ParserCmdResult {
-			// 			command: cmd,
-			// 			command_and_args: first_index..0,
-			// 		};
-				
-			// 	commansds.next();
-			// 	for (i, cmd) in commansds.enumerate() {
-			// 		if cmd.is_none() {
-			// 			continue;
-			// 		}
-
-			// 		command.command_and_args = first_index..i;
-			// 	}
-			// }
-
-			// while let Some(raw_arg) = iter.next() {
-			// 	println!("{:?}", self.check_flag(raw_arg));
-			// 	let arg = self.check_flag(raw_arg);
-			// 	if arg.0 {
-			// 			let arg = String::from(arg.1.unwrap());
-	
-			// 			if let Some(arg) = self.args.iter().find(|a| {
-			// 				a.name == arg ||
-			// 				a.short == Some(arg.to_string()) && a.short.is_some() ||
-			// 				a.long == Some(arg.to_string()) && a.long.is_some()
-			// 			}) {
-			// 				let vals: Vec<&String> = vec![];
-			// 				if arg.settings.contains(args::ArgSettings::MULTIPLE) {
-			// 					while let Some(val) = iter.next() {
-			// 						println!("{:?}", val);	
-			// 					}
-			// 				}
-
-			// 				results.present_args.insert(arg.name.to_string(), arg);
-			// 			}
-			// 	} else {
-			// 		if let Some(cmd) = self.commands.iter().find(|c| &&c.name == &raw_arg ) {
-			// 			results.present_commands.insert(cmd.name.to_string(), cmd);
-			// 		}					
-			// 	}
-			// }
-
 			results
 		}
 
@@ -288,10 +202,10 @@ use std::ops::Range;
 		}
 
 		/// ...
-		pub fn check_uniqueness<'a, T: PartialEq>(
-			&'a self,
-			items: &'a Vec<T>,
-		) -> (bool, Option<&'a T>) {
+		pub fn check_uniqueness<'b, T: PartialEq>(
+			&'b self,
+			items: &'b Vec<T>,
+		) -> (bool, Option<&'b T>) {
 			let mut iter = items.iter();
 
 			while let Some(item) = iter.next() {
@@ -307,25 +221,25 @@ use std::ops::Range;
 		}
 
 		/// ...
-		pub fn check_command_names<'a>(
-			&'a self,
-		) -> (
-			bool,
-			Option<&'a commands::Command>,
-			Option<&'a commands::Command>,
-		) {
-			commands::check_cmds(&self.commands)
-		}
+		// pub fn check_command_names<'b>(
+		// 	&'b self,
+		// ) -> (
+		// 	bool,
+		// 	Option<&'b commands::Command>,
+		// 	Option<&'b commands::Command>,
+		// ) {
+		// 	commands::check_cmds(&self.commands)
+		// }
 
 		/// ...
-		pub fn check_arg_names<'a>(
-			&'a self,
-		) -> (bool, Option<&'a args::Arg>, Option<&'a args::Arg>) {
+		pub fn check_arg_names<'b>(
+			&'b self,
+		) -> (bool, Option<&'b args::Arg>, Option<&'b args::Arg>) {
 			args::check_args(&self.args)
 		}
 
 		/// ...
-		pub fn check_flag<'a>(&self, string: &'a String) -> (bool,Option<&'a str>) {
+		pub fn check_flag<'b>(&self, string: &'b String) -> (bool,Option<&'b str>) {
 			match (
 				string.starts_with('-'),
 				string.starts_with("--")
@@ -348,7 +262,8 @@ use std::ops::Range;
 /// Everything command related
 pub mod commands {
 	use crate::args::Arg;
-
+	use std::collections::HashMap;
+	
 	/// ...
 	#[derive(Debug, Clone, PartialEq, Eq)]
 	pub struct Command {
@@ -391,23 +306,26 @@ pub mod commands {
 		}
 	}
 
-	/// ...
-	pub fn check_cmds<'a>(
-		commands: &'a Vec<Command>,
-	) -> (bool, Option<&'a Command>, Option<&'a Command>) {
-		let mut commands = commands.iter();
+	// /// ...
+	// pub fn check_cmds(
+	// 	commands: HashMap<String, Command>,
+	// ) -> (bool, Option<Command>, Option<Command>) {
+	// 	// let mut commands = commands.iter();
 
-		while let Some(command) = commands.next() {
-			match commands.find(|cmd| cmd.name == command.name) {
-				Some(cmd) => {
-					return (true, Some(&command), Some(cmd));
-				}
-				None => continue,
-			}
-		}
+	// 	for cmd in commands.keys() {
+	// 		let vals = 
+	// 	}
+	// 	// while let Some(command) = commands.next() {
+	// 	// 	match commands.find(|cmd| cmd.0 == command.name) {
+	// 	// 		Some(cmd) => {
+	// 	// 			return (true, Some(&command), Some(cmd));
+	// 	// 		}
+	// 	// 		None => continue,
+	// 	// 	}
+	// 	// }
 
-		return (false, None, None);
-	}
+	// 	return (false, None, None);
+	// }
 }
 
 /// Everything argument related
