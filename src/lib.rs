@@ -1,8 +1,10 @@
 #![deny(missing_docs)]
+#![allow(soft_unstable)]
+#![allow(clippy::iter_next_loop)]
 //! Pieces is a command line argument parser with user control in mind.
 
 /// FancyArgs is just a better way of using [env::args](std::env::args).
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FancyArgs {
 	/// The actual args in a vec string format.
 	pub inner: Vec<String>,
@@ -35,9 +37,10 @@ pub mod parse {
 
 	use std::collections::HashMap;
 	use std::hash::Hash;
-use std::ops::Range;
+	use std::ops::Range;
 
 	use bitflags::bitflags;
+
 	use crate::args;
 	use crate::commands;
 	use crate::FancyArgs;
@@ -69,6 +72,15 @@ use std::ops::Range;
 		pub command_and_args: Option<Range<usize>>,
 	}
 
+	/// ...
+	#[derive(Debug, PartialEq)]
+	pub struct ParserCmdArgResult {
+		/// ...
+		pub name: String,
+		/// ...
+		/// May be none if the arg doesnt take value (mainly flags)
+		pub value: Option<String>,
+	}
 
 	/// ...
 	#[derive(Debug, PartialEq)]
@@ -104,9 +116,15 @@ use std::ops::Range;
 
 		/// ...
 		pub fn is_present(self, key: String) -> bool {
-			match self.commands.get(&key) {
-				Some(_) => true,
-				None => false,
+			self.commands.get(&key).is_some()
+		}
+	}
+
+	impl<'a> Default for ParserResult<'a> {
+		fn default() -> ParserResult<'a> {
+			ParserResult {
+				commands: HashMap::new(),
+				present_args: HashMap::new(),
 			}
 		}
 	}
@@ -119,10 +137,11 @@ use std::ops::Range;
 		pub raw_args: FancyArgs,
 
 		/// Args from the main app
-		pub args: Vec<args::Arg>,
+		pub args: HashMap<String, args::Arg>,
 
 		/// Commands
-		pub commands: HashMap<String, commands::Command>, //Vec<commands::Command>,
+		pub commands: HashMap<String, commands::Command>, /* Vec<commands::
+		                                                   * Command>, */
 
 		/// Settings, set with ParserSettings:
 		pub settings: ParserSettings,
@@ -141,8 +160,16 @@ use std::ops::Range;
 			Parser {
 				raw_args,
 				args: match args {
-					Some(a) => a,
-					None => vec![],
+					Some(a) => {
+						let mut args = HashMap::new();
+
+						for arg in a {
+							args.insert(arg.name.to_string(), arg);
+						}
+
+						args
+					}
+					None => HashMap::new(),
 				},
 				commands: match commands {
 					Some(a) => {
@@ -153,107 +180,85 @@ use std::ops::Range;
 						}
 
 						cmds
-					},
+					}
 					None => HashMap::new(),
 				},
 				settings: ParserSettings::empty(),
 			}
 		}
 
-		/// ...
-		pub fn parse<'b>(&'b self) -> ParserResult<'b> {
+		/// Parses the commands added to the parser in [to_parse]
+		/// This ONLY parses out top-level commands, not args or sub-commands.
+		pub fn parse_commands<'b, T>(
+			&'b self,
+			to_parse: &mut T,
+		) -> ParserResult<'b>
+		where
+			T: Iterator<Item = &'b String>, {
 			let mut results = ParserResult::new();
 
-			let mut commansds = self.raw_args.inner.iter().filter_map(|i| {
-				if let Some(cmd) = self.commands.get(i) {//self.commands.iter().find(|c| &c.0 == &i ) {
-					Some((
-						self.raw_args.inner.iter().position(|e| e == i),
-						Some(cmd)
-					))
-				} else {
-					Some((
-						None,
-						None
-					))
-				}
-			});
-
-			while let Some(main_cmd) = commansds.next() {
-				if main_cmd.1.is_none() {
-					continue;
-				}
-
-				let main_cmd = (main_cmd.0,main_cmd.1.unwrap());
-			
-				let currnet_command = ParserCmdResult {
-					command: Some(main_cmd.1),
-					command_and_args: Some(main_cmd.0.unwrap()..main_cmd.0.unwrap()+1),
+			while let Some(cmd) = to_parse.next() {
+				let command = match self.commands.get(cmd) {
+					Some(cmd) => cmd,
+					None => continue,
 				};
 
-				results.commands.insert(main_cmd.1.name.to_string(), currnet_command);
+				let start_posistion =
+					match self.raw_args.inner.iter().position(|e| e == cmd) {
+						Some(pos) => pos,
+						None => continue,
+					};
+
+				let mut end_position = start_posistion + 1;
+
+				for next_cmd in to_parse.next() {
+					let _command = self.commands.get(cmd);
+
+					if _command.is_some() {
+						let pos = match self
+							.raw_args
+							.inner
+							.iter()
+							.position(|e| e == next_cmd)
+						{
+							Some(pos) => pos,
+							None => continue,
+						};
+
+						end_position = pos;
+						break;
+					}
+				}
+
+				let currnet_command = ParserCmdResult {
+					command: Some(command),
+					command_and_args: Some(start_posistion..end_position),
+				};
+				println!("{:?}", currnet_command);
+				results
+					.commands
+					.insert(command.name.to_string(), currnet_command);
 			}
+
 			results
 		}
 
 		/// ...
 		pub fn setting(mut self, setting: ParserSettings) -> Self {
-			self.settings = self.settings | setting;
+			self.settings |= setting;
 			self
 		}
 
 		/// ...
-		pub fn check_uniqueness<'b, T: PartialEq>(
-			&'b self,
-			items: &'b Vec<T>,
-		) -> (bool, Option<&'b T>) {
-			let mut iter = items.iter();
-
-			while let Some(item) = iter.next() {
-				let katch =
-					items.iter().filter(|i| i == &item).collect::<Vec<&T>>();
-
-				if katch.len() > 1 {
-					return (true, Some(item));
-				}
-			}
-
-			(false, None)
-		}
-
-		/// ...
-		// pub fn check_command_names<'b>(
-		// 	&'b self,
-		// ) -> (
-		// 	bool,
-		// 	Option<&'b commands::Command>,
-		// 	Option<&'b commands::Command>,
-		// ) {
-		// 	commands::check_cmds(&self.commands)
-		// }
-
-		/// ...
-		pub fn check_arg_names<'b>(
-			&'b self,
-		) -> (bool, Option<&'b args::Arg>, Option<&'b args::Arg>) {
-			args::check_args(&self.args)
-		}
-
-		/// ...
-		pub fn check_flag<'b>(&self, string: &'b String) -> (bool,Option<&'b str>) {
-			match (
-				string.starts_with('-'),
-				string.starts_with("--")
-			) {
-				(true, true) => {
-					(true,string.strip_prefix("--"))
-				},
-				(true, false) => {
-					(true,string.strip_prefix('-'))
-				},
-				(false, true) => {
-					(true,string.strip_prefix("--"))
-				},
-				(false, false) => (false,None),
+		pub fn check_flag<'b>(
+			&self,
+			string: &'b str,
+		) -> (bool, Option<&'b str>) {
+			match (string.starts_with('-'), string.starts_with("--")) {
+				(true, true) => (true, string.strip_prefix("--")),
+				(true, false) => (true, string.strip_prefix('-')),
+				(false, true) => (true, string.strip_prefix("--")),
+				(false, false) => (false, None),
 			}
 		}
 	}
@@ -262,8 +267,7 @@ use std::ops::Range;
 /// Everything command related
 pub mod commands {
 	use crate::args::Arg;
-	use std::collections::HashMap;
-	
+
 	/// ...
 	#[derive(Debug, Clone, PartialEq, Eq)]
 	pub struct Command {
@@ -305,27 +309,6 @@ pub mod commands {
 			self
 		}
 	}
-
-	// /// ...
-	// pub fn check_cmds(
-	// 	commands: HashMap<String, Command>,
-	// ) -> (bool, Option<Command>, Option<Command>) {
-	// 	// let mut commands = commands.iter();
-
-	// 	for cmd in commands.keys() {
-	// 		let vals = 
-	// 	}
-	// 	// while let Some(command) = commands.next() {
-	// 	// 	match commands.find(|cmd| cmd.0 == command.name) {
-	// 	// 		Some(cmd) => {
-	// 	// 			return (true, Some(&command), Some(cmd));
-	// 	// 		}
-	// 	// 		None => continue,
-	// 	// 	}
-	// 	// }
-
-	// 	return (false, None, None);
-	// }
 }
 
 /// Everything argument related
@@ -401,43 +384,14 @@ pub mod args {
 
 		/// Set a setting
 		pub fn setting(mut self, setting: ArgSettings) -> Self {
-			self.settings = self.settings | setting;
+			self.settings |= setting;
 			self
 		}
 	}
 
-	/// Checks the provided vec of args for duplicates. If any of the
-	/// arguments's names and long/short names match the function will return
-	/// true, the current argument, the argument the current argument matched
-	/// on.
-	pub fn check_args<'a>(
-		args: &'a Vec<Arg>,
-	) -> (bool, Option<&'a Arg>, Option<&'a Arg>) {
-		let mut args = args.iter();
-
-		while let Some(arg) = args.next() {
-			match args.find(|a| {
-				a.name == arg.name
-					|| a.short == arg.short && a.short.is_some()
-					|| a.long == arg.long && a.long.is_some()
-			}) {
-				Some(ark) => {
-					if arg.settings.contains(ArgSettings::MULTIPLE) {
-						continue;
-					}
-
-					return (true, Some(&arg), Some(ark));
-				}
-				None => continue,
-			}
-		}
-
-		return (false, None, None);
-	}
-
 	/// ...
 	pub fn check_req_args<'a>(
-		args: &'a Vec<Arg>,
+		args: &'a [Arg],
 		raw_args: &FancyArgs,
 	) -> (bool, Option<&'a Arg>) {
 		let raw_args = raw_args
@@ -458,9 +412,9 @@ pub mod args {
 		for arg in args {
 			if raw_args.contains(&arg.name)
 				|| arg.short.is_some()
-					&& raw_args.contains(&arg.short.as_ref().unwrap())
+					&& raw_args.contains(arg.short.as_ref().unwrap())
 				|| arg.long.is_some()
-					&& raw_args.contains(&arg.long.as_ref().unwrap())
+					&& raw_args.contains(arg.long.as_ref().unwrap())
 			{
 				continue;
 			}
