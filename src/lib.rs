@@ -38,9 +38,9 @@ pub mod parse {
 	use std::collections::HashMap;
 	use std::hash::Hash;
 	use std::ops::Range;
-
 	use bitflags::bitflags;
 
+	use bitflags::bitflags;
 	use crate::args;
 	use crate::commands;
 	use crate::FancyArgs;
@@ -70,16 +70,6 @@ pub mod parse {
 		pub command: Option<&'a commands::Command>,
 		/// ...
 		pub command_and_args: Option<Range<usize>>,
-	}
-
-	/// ...
-	#[derive(Debug, PartialEq)]
-	pub struct ParserCmdArgResult {
-		/// ...
-		pub name: String,
-		/// ...
-		/// May be none if the arg doesnt take value (mainly flags)
-		pub value: Option<String>,
 	}
 
 	/// ...
@@ -140,8 +130,7 @@ pub mod parse {
 		pub args: HashMap<String, args::Arg>,
 
 		/// Commands
-		pub commands: HashMap<String, commands::Command>, /* Vec<commands::
-		                                                   * Command>, */
+		pub commands: HashMap<String, commands::Command>,
 
 		/// Settings, set with ParserSettings:
 		pub settings: ParserSettings,
@@ -238,10 +227,6 @@ pub mod parse {
 				results
 					.commands
 					.insert(command.name.to_string(), currnet_command);
-			}
-
-			results
-		}
 
 		/// ...
 		pub fn setting(mut self, setting: ParserSettings) -> Self {
@@ -267,7 +252,8 @@ pub mod parse {
 /// Everything command related
 pub mod commands {
 	use crate::args::Arg;
-
+	use std::collections::HashMap;
+	
 	/// ...
 	#[derive(Debug, Clone, PartialEq, Eq)]
 	pub struct Command {
@@ -309,8 +295,7 @@ pub mod commands {
 			self
 		}
 	}
-}
-
+  
 /// Everything argument related
 pub mod args {
 
