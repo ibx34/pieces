@@ -2,7 +2,7 @@
 //! Pieces is a command line argument parser with user control in mind.
 
 /// FancyArgs is just a better way of using [env::args](std::env::args).
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FancyArgs {
 	/// The actual args in a vec string format.
 	pub inner: Vec<String>,
@@ -33,11 +33,13 @@ impl FancyArgs {
 /// ...
 pub mod parse {
 
-	use bitflags::bitflags;
+	use std::collections::HashMap;
+	use std::hash::Hash;
+use std::ops::Range;
 
+	use bitflags::bitflags;
 	use crate::args;
 	use crate::commands;
-	use crate::commands::Command;
 	use crate::FancyArgs;
 
 	bitflags! {
@@ -58,17 +60,69 @@ pub mod parse {
 		}
 	}
 
+	/// ...
+	#[derive(Debug, PartialEq)]
+	pub struct ParserCmdResult<'a> {
+		/// ...
+		pub command: Option<&'a commands::Command>,
+		/// ...
+		pub command_and_args: Option<Range<usize>>,
+	}
+
+
+	/// ...
+	#[derive(Debug, PartialEq)]
+	pub struct ParserResult<'a> {
+		/// ...
+		pub commands: HashMap<String, ParserCmdResult<'a>>,
+		/// ...
+		pub present_args: HashMap<String, &'a args::Arg>,
+	}
+
+	impl<'a> ParserResult<'a> {
+		/// ...
+		pub fn new() -> ParserResult<'a> {
+			ParserResult {
+				commands: HashMap::new(),
+				present_args: HashMap::new(),
+			}
+		}
+
+		/// ...
+		// pub fn value_of<'b>(
+		// 	&'b self,
+		// 	key: String,
+		// ) -> Result<&'b commands::Command, std::io::Error> {
+		// 	match self.present_commands.get(&key) {
+		// 		Some(command) => Ok(command),
+		// 		None => Err(std::io::Error::new(
+		// 			std::io::ErrorKind::NotFound,
+		// 			"Command not present.",
+		// 		)),
+		// 	}
+		// }
+
+		/// ...
+		pub fn is_present(self, key: String) -> bool {
+			match self.commands.get(&key) {
+				Some(_) => true,
+				None => false,
+			}
+		}
+	}
+
 	/// The parser for parsing commands, flags, and arguments.
-	#[derive(Debug)]
+	#[derive(Debug, PartialEq)]
 
 	pub struct Parser {
-		pub(crate) raw_args: FancyArgs,
+		/// ...
+		pub raw_args: FancyArgs,
 
 		/// Args from the main app
 		pub args: Vec<args::Arg>,
 
 		/// Commands
-		pub commands: Vec<commands::Command>,
+		pub commands: HashMap<String, commands::Command>, //Vec<commands::Command>,
 
 		/// Settings, set with ParserSettings:
 		pub settings: ParserSettings,
@@ -91,11 +145,54 @@ pub mod parse {
 					None => vec![],
 				},
 				commands: match commands {
-					Some(a) => a,
-					None => vec![],
+					Some(a) => {
+						let mut cmds = HashMap::new();
+
+						for cmd in a {
+							cmds.insert(cmd.name.to_string(), cmd);
+						}
+
+						cmds
+					},
+					None => HashMap::new(),
 				},
 				settings: ParserSettings::empty(),
 			}
+		}
+
+		/// ...
+		pub fn parse<'b>(&'b self) -> ParserResult<'b> {
+			let mut results = ParserResult::new();
+
+			let mut commansds = self.raw_args.inner.iter().filter_map(|i| {
+				if let Some(cmd) = self.commands.get(i) {//self.commands.iter().find(|c| &c.0 == &i ) {
+					Some((
+						self.raw_args.inner.iter().position(|e| e == i),
+						Some(cmd)
+					))
+				} else {
+					Some((
+						None,
+						None
+					))
+				}
+			});
+
+			while let Some(main_cmd) = commansds.next() {
+				if main_cmd.1.is_none() {
+					continue;
+				}
+
+				let main_cmd = (main_cmd.0,main_cmd.1.unwrap());
+			
+				let currnet_command = ParserCmdResult {
+					command: Some(main_cmd.1),
+					command_and_args: Some(main_cmd.0.unwrap()..main_cmd.0.unwrap()+1),
+				};
+
+				results.commands.insert(main_cmd.1.name.to_string(), currnet_command);
+			}
+			results
 		}
 
 		/// ...
@@ -105,20 +202,18 @@ pub mod parse {
 		}
 
 		/// ...
-		pub fn check_command_uniqueness<'a>(
-			&'a self,
-		) -> (bool, Option<&'a Command>) {
-			let mut commands_iter = self.commands.iter();
+		pub fn check_uniqueness<'b, T: PartialEq>(
+			&'b self,
+			items: &'b Vec<T>,
+		) -> (bool, Option<&'b T>) {
+			let mut iter = items.iter();
 
-			while let Some(command) = commands_iter.next() {
-				let command_match = self
-					.commands
-					.iter()
-					.filter(|c| c == &command)
-					.collect::<Vec<&Command>>();
+			while let Some(item) = iter.next() {
+				let katch =
+					items.iter().filter(|i| i == &item).collect::<Vec<&T>>();
 
-				if command_match.len() > 1 {
-					return (true, Some(command));
+				if katch.len() > 1 {
+					return (true, Some(item));
 				}
 			}
 
@@ -126,10 +221,40 @@ pub mod parse {
 		}
 
 		/// ...
-		pub fn check_command_names<'a>(
-			&'a self,
-		) -> (bool, Option<&'a Command>, Option<&'a Command>) {
-			commands::check_cmds(&self.commands)
+		// pub fn check_command_names<'b>(
+		// 	&'b self,
+		// ) -> (
+		// 	bool,
+		// 	Option<&'b commands::Command>,
+		// 	Option<&'b commands::Command>,
+		// ) {
+		// 	commands::check_cmds(&self.commands)
+		// }
+
+		/// ...
+		pub fn check_arg_names<'b>(
+			&'b self,
+		) -> (bool, Option<&'b args::Arg>, Option<&'b args::Arg>) {
+			args::check_args(&self.args)
+		}
+
+		/// ...
+		pub fn check_flag<'b>(&self, string: &'b String) -> (bool,Option<&'b str>) {
+			match (
+				string.starts_with('-'),
+				string.starts_with("--")
+			) {
+				(true, true) => {
+					(true,string.strip_prefix("--"))
+				},
+				(true, false) => {
+					(true,string.strip_prefix('-'))
+				},
+				(false, true) => {
+					(true,string.strip_prefix("--"))
+				},
+				(false, false) => (false,None),
+			}
 		}
 	}
 }
@@ -137,9 +262,10 @@ pub mod parse {
 /// Everything command related
 pub mod commands {
 	use crate::args::Arg;
-
+	use std::collections::HashMap;
+	
 	/// ...
-	#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+	#[derive(Debug, Clone, PartialEq, Eq)]
 	pub struct Command {
 		/// Name of the argument
 		pub name: String,
@@ -180,23 +306,26 @@ pub mod commands {
 		}
 	}
 
-	/// ...
-	pub fn check_cmds<'a>(
-		commands: &'a Vec<Command>,
-	) -> (bool, Option<&'a Command>, Option<&'a Command>) {
-		let mut commands = commands.iter();
+	// /// ...
+	// pub fn check_cmds(
+	// 	commands: HashMap<String, Command>,
+	// ) -> (bool, Option<Command>, Option<Command>) {
+	// 	// let mut commands = commands.iter();
 
-		while let Some(command) = commands.next() {
-			match commands.find(|cmd| cmd.name == command.name) {
-				Some(cmd) => {
-					return (true, Some(&command), Some(cmd));
-				}
-				None => continue,
-			}
-		}
+	// 	for cmd in commands.keys() {
+	// 		let vals = 
+	// 	}
+	// 	// while let Some(command) = commands.next() {
+	// 	// 	match commands.find(|cmd| cmd.0 == command.name) {
+	// 	// 		Some(cmd) => {
+	// 	// 			return (true, Some(&command), Some(cmd));
+	// 	// 		}
+	// 	// 		None => continue,
+	// 	// 	}
+	// 	// }
 
-		return (false, None, None);
-	}
+	// 	return (false, None, None);
+	// }
 }
 
 /// Everything argument related
@@ -213,6 +342,8 @@ pub mod args {
 			const MULTIPLE = 1;
 			/// Whether or not the argument should be required
 			const REQUIRED = 1 << 2;
+			/// Whether or not the argument takes a value
+			const TAKES_VALUE = 1 << 3;
 		}
 	}
 
