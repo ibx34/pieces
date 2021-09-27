@@ -2,6 +2,13 @@
 
 An argument parser built with control in mind.
 
+## Parsing
+
+The results you get are dependent on what order you parse in. If you want to say 
+only parse positional arguemnts then only call `.parse_args()`. If you want to
+parse flag arguments before posistional (for some odd reason) then call `.parse_flags()`
+before calling `.parse_args()`. **The example belows parsing of positional arguments before flag arguments.**
+
 ## Example
 ```rs
 use piecesv2;
