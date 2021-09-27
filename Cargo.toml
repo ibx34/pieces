@@ -1,0 +1,15 @@
+[package]
+name = "piecesv2"
+version = "0.1.0"
+edition = "2018"
+license = "GNU GENERAL PUBLIC LICENSE"
+maintenance = { status = "actively-developed" }
+description = "A argument parser. Built with "
+readme = "readme.md"
+repository = "https://github.com/ibx34/pieces"
+homepage = "https://github.com/ibx34/pieces"
+documentation = "https://docs.rs/pieces/0.1.1/pieces/"
+
+[dependencies]
+bitflags = "1.3.2"
+multimap = "0.8.3"
