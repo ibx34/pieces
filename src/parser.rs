@@ -72,17 +72,19 @@ where
 	#[must_use = "Why even call me if you're not going to use my output?"]
 	pub fn parse_flags(&mut self) -> MultiMap<String, Output> {
 		let mut results: MultiMap<String, Output> = MultiMap::new();
-		let args =
-			self.args.iter().filter(|arg| arg.long.is_some() || arg.short.is_some());
+		let args = self
+			.args
+			.iter()
+			.filter(|arg| arg.long.is_some() || arg.short.is_some());
 
 		while let Some(raw_arg) = self.env_args.next() {
-			let is_flag = match (raw_arg.starts_with('-'), raw_arg.starts_with("--"))
-			{
-				(true, true) => (true, raw_arg.strip_prefix("--")),
-				(true, false) => (true, raw_arg.strip_prefix('-')),
-				(false, true) => (true, raw_arg.strip_prefix("--")),
-				(false, false) => (false, None),
-			};
+			let is_flag =
+				match (raw_arg.starts_with('-'), raw_arg.starts_with("--")) {
+					(true, true) => (true, raw_arg.strip_prefix("--")),
+					(true, false) => (true, raw_arg.strip_prefix('-')),
+					(false, true) => (true, raw_arg.strip_prefix("--")),
+					(false, false) => (false, None),
+				};
 
 			if !is_flag.0 || is_flag.1.is_none() {
 				continue;
