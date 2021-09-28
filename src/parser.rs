@@ -25,7 +25,7 @@ impl<'a, A> Parser<'a, A> where A: Iterator<Item = String> {
   }
 
   #[must_use = "Why even call me if you're not going to use my output?"]
-  pub fn parse_cmds(&mut self) -> HashMap<String, Commands> {
+  pub fn parse_cmds(&'a mut self) -> HashMap<String, Commands> {
     let mut results: HashMap<String, Commands> = HashMap::new();
 
     let commands = self.commands.clone();
@@ -33,7 +33,7 @@ impl<'a, A> Parser<'a, A> where A: Iterator<Item = String> {
 
     while let Some(raw_arg) = self.env_args.next() {
       if let Some(cmd) = cmds.clone().find(|c| c.name == &raw_arg) {
-        let mut cmd_entry = Commands { command: raw_arg,
+        let mut cmd_entry = Commands { command: raw_arg.to_string(),
                                        present_args: HashMap::new(),
                                        present_flags: MultiMap::new() };
 
