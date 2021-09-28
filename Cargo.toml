@@ -2,7 +2,7 @@
 name = "pieces"
 version = "0.2.0"
 edition = "2018"
-license = "GNU GENERAL PUBLIC LICENSE"
+license-file = "COPYING"
 maintenance = { status = "actively-developed" }
 description = "A argument parser. Built with "
 readme = "readme.md"
